@@ -1,5 +1,6 @@
-install.packages("readtext")
+#install.packages("readtext")
 library(readtext)
+library(tm)
 
 path <- "~/Documents/College/eighth_semester/big_data/big_data_project_three/docs"
 
@@ -15,16 +16,19 @@ library(stringi)
 ptext <- stri_replace_all(text,"",regex = "<.*?>")    #remove html tags
 ptext <- stri_trim(ptext)                             #clean whitespace
 ptext <- stri_trans_tolower(ptext)                    #make lowercase
+ptext
 
 ##############   quanteda stuff       #################
-install.packages("quanteda")
+#install.packages("quanteda")
 library(quanteda)
 #create document term matrix, removing stopwords, removing numbers, removing punctuation, stemming
-noPunctText = removePunctuation(text)
+noPunctText = removePunctuation(ptext)
 dtm <- dfm(noPunctText, tolower = TRUE, stem = TRUE, remove = stopwords("english"), remove_numbers = TRUE)
+dtm
 #do same thing using a quanteda corpus
 corp = corpus(rt)
 cdtm <- dfm(corp, tolower = TRUE, stem = TRUE, remove = stopwords("english"), remove_numbers = TRUE)
+cdtm
 
 #print top 20 features
 topfeatures(dtm, 20)
@@ -35,10 +39,15 @@ wdtm
 
 #once again, since we have only one document we cannot use the machine learning part of quanteda
 ############## corpustools stuff   ####################
-install.packages("corpustools")
+#install.packages("corpustools")
 library(corpustools)
 tc <- create_tcorpus(rt)
-#see how often captain and nemo are within 2 words of each other
+
+#who is the captain
+hits <- tc$search_features('"captain nautilus"~2')
+kwic <- tc$kwic(hits, ntokens = 3)
+head(kwic$kwic, 5)
+
 hits <- tc$search_features('"captain nemo"~2')
 kwic <- tc$kwic(hits, ntokens = 3)
 head(kwic$kwic, 5)
@@ -67,8 +76,36 @@ head(kwic$kwic, 5)
 hits <- tc$search_features('"nemo attack"~10')
 kwic <- tc$kwic(hits, ntokens = 5)
 head(kwic$kwic, 5)
+
+#who is ned
+hits <- tc$search_features('"ned"')
+kwic <- tc$kwic(hits, ntokens = 10)
+head(kwic$kwic, 5)
+
+hits <- tc$search_features('"ned nemo"~10')
+kwic <- tc$kwic(hits, ntokens = 10)
+head(kwic$kwic, 5)
+
+#what monster (from negative words)
+hits <- tc$search_features('"monster"')
+kwic <- tc$kwic(hits, ntokens = 10)
+head(kwic$kwic, 5)
+
+#do we find the monster
+hits <- tc$search_features('"find monster"~10')
+kwic <- tc$kwic(hits, ntokens = 10)
+head(kwic$kwic, 5)
+
+#can we figure out if nemo dies
+hits <- tc$search_features('"nemo dead"~10')
+kwic <- tc$kwic(hits, ntokens = 7)
+head(kwic$kwic, 5)
+
+hits <- tc$search_features('"nemo *liv*"~10')
+kwic <- tc$kwic(hits, ntokens = 7)
+head(kwic$kwic, 5)
 ############## tidytext stuff ##################
-install.packages("tidytext")
+#install.packages("tidytext")
 library(tidytext)
 library(dplyr)
 
@@ -88,8 +125,10 @@ tidyBook %>%
   semi_join(positive) %>%
   arrange(desc(count))
 
-#install.packages("wordcloud")
-#library(wordcloud)
+#find most positive words in the book
+negative <- get_sentiments(lexicon = "bing") %>%
+  filter(sentiment == "negative")
 
-
-
+tidyBook %>%
+  semi_join(negative) %>%
+  arrange(desc(count))
